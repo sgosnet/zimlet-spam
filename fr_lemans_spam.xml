@@ -1,0 +1,8 @@
+<zimlet name = "fr_lemans_spam"
+ version = "1.0"
+ label="${msg.label}"
+ description="${msg.description}"
+ target = "main compose-window view-window">
+ <include>fr_lemans_spam.js</include>
+ <handlerObject>fr_lemans_spam_HandlerObject</handlerObject>
+</zimlet>

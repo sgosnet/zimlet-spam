@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zimletConfig name="fr_lemans_spam" version="1.0">
+    <global>
+        <property name="helpdeskMail">spam@lab.lemans.fr</property>
+        <property name="helpdeskName">Allo DSI</property>
+        <property name="spamPrefix">[SPAM]</property>
+        <property name="spamNoSend">true</property>
+	    <property name="spamAttributs">From:;To:;X-Spam-Flag:;X-Spam-Score:;X-Spam-Level:;X-Spam-Status:</property>
+    </global>
+</zimletConfig>
