@@ -1,4 +1,4 @@
-﻿/*
+/*
 This file is part of the Le Mans Spam Zimlet.
 Copyright (C) 2019 Stéphane Gosnet
 
@@ -20,11 +20,14 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 
 /*
  * Version 1.0 : 01/21/2019
-*/
-
-/**
+ * Version 1.1 : 01/23/2019
+ *		Correction pas d'envoi si action sur le bouton "Pas du spam"
+*
  * Reste à faire :
  *   - Surcharge menu contextuel Déclarer comme spam sur liste des messages
+ *
+ * Bugs :
+ *   - Les notifications ne fonctionnent pas toujours
  */
 
 
@@ -60,11 +63,10 @@ fr_lemans_spam_HandlerObject.prototype.replaceMailToolbarBtnListener = function(
 		this._viewHasNewListner = [];
 	}
 
+	// Appel du bouton Spam de la vue s'il s'agit d'une vue de type Message
 	var viewId = appCtxt.getAppViewMgr().getCurrentViewId();
     var viewType = appCtxt.getAppViewMgr().getCurrentViewType();
-
-	// Appel du bouton Spam de la vue s'il s'agit d'une vue de type Message
-        if (viewType != "CLV" && viewType != "TV" && viewType != "CV" && viewType != "MSG") {
+	if (viewType != "CLV" && viewType != "TV" && viewType != "CV" && viewType != "MSG") {
 		return;
 	} else {
                 controller = appCtxt.getCurrentController();
@@ -79,7 +81,6 @@ fr_lemans_spam_HandlerObject.prototype.replaceMailToolbarBtnListener = function(
 		// btn.removeSelectionListeners();  // Retire l'ancien Listerner du bouton
 		btn.addSelectionListener(newListner);
 	}
-
 };
 
 /**
@@ -89,10 +90,7 @@ fr_lemans_spam_HandlerObject.prototype.onShowView = function (viewId, isNewView)
 
 	var viewType = appCtxt.getAppViewMgr().getCurrentViewType();
 
-//console.log("[LMM Spam] Changement de vue courante : "+viewId);
-//console.log("[LMM Spam] Type vue courante : "+viewType);
-
-      if (viewType == "CLV" || viewType == "TV" || viewType == "CV" || viewType == "MSG") {
+	if (viewType == "CLV" || viewType == "TV" || viewType == "CV" || viewType == "MSG") {
 		this.replaceMailToolbarBtnListener(ZmId.OP_SPAM, new AjxListener(this, this._newSelectionListener));
 	}
 };
@@ -111,19 +109,21 @@ fr_lemans_spam_HandlerObject.prototype._newSelectionListener = function(obj) {
 	var spamContenu = this.getMessage("frlemansspam_Mailcontenu");
 
 	var selection = this.getSelectMsgIds();
-	if(selection.length > 0){
-
+	if(selection != false){
 		for(var i=0; i < selection.length; i++){
-				console.log("[LMM Spam] Message("+i+"/"+selection.length+") "+selection[i]);
+console.log("[LMM Spam] Message("+(i+1)+"/"+selection.length+") "+selection[i]);
 				if(selection[i] != null && selection[i] != undefined){
 					this.sendEmails(selection[i],helpdeskMail,spamPrefix + spamSujet, spamContenu + this.notifyAttribs(this.getMailContent(selection[i])),spamNoSend);
 				}
 		}
 	
-		if(selection.length  > 1){
-				appCtxt.getAppController().setStatusMsg(selection.length + " " +this.getMessage("frlemansspam_Notifs")+ " " + helpdeskName+" !",ZmStatusView.LEVEL_WARNING);
+		// Notification utilisateur
+		if(selection.length  == 1){
+console.log("[LMM Spam] " + selection.length + " " + this.getMessage("frlemansspam_Notif") + " " + helpdeskName+" !");
+			appCtxt.getAppController().setStatusMsg(selection.length + " " + this.getMessage("frlemansspam_Notif") + " " + helpdeskName+" !",ZmStatusView.LEVEL_WARNING);
 		} else {
-			appCtxt.getAppController().setStatusMsg(selection.length + " " +this.getMessage("frlemansspam_Notif")+ " " + helpdeskName+" !",ZmStatusView.LEVEL_WARNING);
+console.log("[LMM Spam] " + selection.length + " " + this.getMessage("frlemansspam_Notifs") + " " + helpdeskName+" !");
+			appCtxt.getAppController().setStatusMsg(selection.length + " " + this.getMessage("frlemansspam_Notifs") + " " + helpdeskName+" !",ZmStatusView.LEVEL_WARNING);
 		}
 	}
 };
@@ -161,8 +161,10 @@ fr_lemans_spam_HandlerObject.prototype.getSelectMsgIds = function()
 	var selectedConvIds = new Array();
 	var message_selected = appCtxt.getCurrentController().getItems();
 	
-	if (message_selected == null || message_selected.length == 0)
-		return;
+	// Si pas de messages sélectionné ou messages dans dossier Spam, retourne rien
+	// folderID 4 : dossier spam.
+	if (message_selected == null || message_selected.length == 0 || message_selected[0].folderId == "4")
+		return false;
 
 	for ( var i = 0; i < message_selected.length; i++)
 	{
@@ -213,7 +215,7 @@ fr_lemans_spam_HandlerObject.prototype.getMailContent = function(msgId)
 }
 
 /*
- * Envoi le message
+ * Envoi le message par WebService JSON
 */
 fr_lemans_spam_HandlerObject.prototype.sendEmails = function(messageSelected, emailAddressToSend, subject, emailBody, noSend)
 {
